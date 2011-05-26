@@ -1,0 +1,19 @@
+{
+    "name": "Кнопка повтора для Яндекс.Музыки",
+    "version": "1.0.0",
+    "description": "Добавляет кнопку включения режима повтора в плеер Яндекс.Музыки",
+    "icons": {
+        "128": "icon128.png"
+    },
+    "permissions": [
+        "http://music.yandex.ru/"
+    ],
+    "content_scripts": [
+        {
+            "js": ["insert_script.js"],
+            "css": ["repeat.css"],
+            "matches": ["http://music.yandex.ru/*"],
+            "run_at": "document_idle"
+        }
+    ]
+}
