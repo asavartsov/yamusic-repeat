@@ -12,7 +12,7 @@
  * 
  * @param repeat_mode 0 - no repeat, 1 - repeat playlist, 2 - repeat song
  */
-Mu.Playlist.prototype.setRepeatMode = function (repeat_mode) {
+Mu.Classes.Playlist.prototype.setRepeatMode = function (repeat_mode) {
     this.repeat_mode = repeat_mode;
 };
 
@@ -20,45 +20,34 @@ Mu.Playlist.prototype.setRepeatMode = function (repeat_mode) {
  * Replacement for Playlist.getNext with repeat support
  * 
  * @param index Current index
+ * @param direction 1 - forwards, -1 - backwards
  * @returns The next song
  */
-Mu.Playlist.prototype.getNext = function(index) {
-    var reindex = this.tracks.getViceIndex(index);
-    
-    switch (this.repeat_mode) {
-        case 2:
-            break;
-        case 1:
-            reindex = (reindex + 1) % this.getLength();
-            break;
-        default:
-            reindex = reindex + 1;
-    }
-    
-    reindex = this.tracks.getVersaIndex(reindex);
-    return this.getByIndex(reindex);
-};
+Mu.Classes.Playlist.prototype.getNext = function(index, direction) {
+	if(direction != 1 && direction != -1) {
+		throw ("From the dark path, no returning there is. Forever, the direction of your life it dominates.");
+	}
 
-/**
- * Replacement for Playlist.getPrev with repeat support
- * 
- * @param index Current index
- * @returns The prev song
- */
-Mu.Playlist.prototype.getPrev = function (index) {
-    var reindex = this.tracks.getViceIndex(index);
+    var reindex = this.getViceIndex(index);
     
     switch (this.repeat_mode) {
         case 2:
             break;
         case 1:
-            reindex = reindex || this.getLength();
+            reindex = reindex + direction;
+			
+			if(reindex < 0) {
+				reindex = this.getLength() - 1;
+			}
+			
+			reindex = reindex % this.getLength();
+            break;
         default:
-            reindex = reindex - 1;
+            reindex = reindex + direction;
     }
     
-    reindex = this.tracks.getVersaIndex(reindex);
-    return this.getByIndex(reindex);        
+    reindex = this.getVersaIndex(reindex);
+    return this.getByIndex(reindex);
 };
 
 // Songbird functions
