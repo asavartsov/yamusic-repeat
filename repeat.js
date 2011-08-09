@@ -166,7 +166,10 @@ function albumize() {
             $(e).attr("href", e + "/albums");
         });
     }
-
+    else {
+        stop_trying();
+    }
 }
 
 window.addEventListener("hashchange", try_albumize, false);
+window.addEventListener("load", try_albumize, false);
