@@ -10,6 +10,6 @@ var head= document.getElementsByTagName('head')[0];
 var script = document.createElement('script');
 
 script.type = 'text/javascript';
-script.src = chrome.extension.getURL("repeat.js");
+script.src = chrome.extension.getURL("albumize.js");
 
 head.appendChild(script);
