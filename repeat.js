@@ -5,108 +5,168 @@
  * Licensed under the MIT license
  */
 
-// Playlist functions
+var MY_ALBUMS_URL = /\#\!\/artist\/[0-9]+\/tracks\/albums/
+var ARTIST_URL = /\#\!\/artist\/[0-9]+/
+
+var _interval_id;
+
+function stop_trying() {
+    $("#js-content").addClass("albumized");
+    clearInterval(_interval_id);
+}
+
+function try_albumize() {
+    _interval_id = setInterval(albumize, 100);
+}
 
 /**
- * Sets repeat mode for playlist
- * 
- * @param repeat_mode 0 - no repeat, 1 - repeat playlist, 2 - repeat song
+ *
+ * @param side String: 'left' or 'right'
  */
-Mu.Classes.Playlist.prototype.setRepeatMode = function (repeat_mode) {
-    this.repeat_mode = repeat_mode;
-};
+function make_album(artist, album, cover, onclick, side) {
+    var album_block = $("<div></div>");
+    var cover_block = $("<div></div>");
 
-/**
- * Replacement for Playlist.getNext with repeat support
- * 
- * @param index Current index
- * @param direction 1 - forwards, -1 - backwards
- * @returns The next song
- */
-Mu.Classes.Playlist.prototype.getNext = function(index, direction) {
-	if(direction != 1 && direction != -1) {
-		throw ("From the dark path, no returning there is. Forever, the direction of your life it dominates.");
-	}
+    artist = album ? artist : "";
 
-    var reindex = this.getViceIndex(index);
-    
-    switch (this.repeat_mode) {
-        case 2:
-            break;
-        case 1:
-            reindex = reindex + direction;
-			
-			if(reindex < 0) {
-				reindex = this.getLength() - 1;
-			}
-			
-			reindex = reindex % this.getLength();
-            break;
-        default:
-            reindex = reindex + direction;
+    var title = album ? album.title.text() : "";
+
+    if(album && album.subtitle.length > 0) {
+        var subtitle = $(album.subtitle).text();
     }
-    
-    reindex = this.getVersaIndex(reindex);
-    return this.getByIndex(reindex);
-};
-
-// Songbird functions
-
-/**
- * Sets repeat mode for songbird and the current playlist
- * 
- * @param repeat_mode 0 - no repeat, 1 - repeat playlist, 2 - repeat song
- */
-Mu.Classes.Songbird.prototype.setRepeatMode = function(repeat_mode) {
-    this.repeat_mode = repeat_mode;
-    
-    var current_track = this.player.getCurrentTrack();
-    
-    if(current_track) {
-        var playlist = this.playlists[current_track.kind];
-        playlist.setRepeatMode(this.repeat_mode);
+    else {
+        var subtitle = "";
     }
-};
 
-/**
- * Cycles the repeat mode (none -> playlist -> song -> none)
- */
-Mu.Classes.Songbird.prototype.nextRepeatMode = function() {
-    this.setRepeatMode(((this.repeat_mode || 0) + 1) % 3);
-};
+    var link = album ? album.title.attr("href") : "";
 
-/**
- * Original Songbird.play
- */
-Mu.Classes.Songbird.prototype._play = Mu.Classes.Songbird.prototype.play;
+    if(cover) {
+        cover_block.addClass("b-albums__cover");
+        cover_block.append(
+            $("<a></a>")
+                .attr("href", link)
+                .append(
+                    $("<img />")
+                    .attr("src", cover)
+                    .addClass("b-albums__cover__img")
+                )
+        );
+    }
 
-/**
- * Replacement for Songbird.play with repeat support
- * 
- * @param trackdata What track to play
- * @returns New track playing
- */
-Mu.Classes.Songbird.prototype.play = function(trackdata) {
-    if(this.repeat_mode) {
-        var playlist = this.getPlaylist(trackdata);
-        
-        if (!playlist.repeat_mode) {
-            this.setRepeatMode(this.repeat_mode);
+    if(onclick) {
+        var play_button = $("<div></div>")
+            .addClass("b-albums__play")
+            .addClass("js-play-album")
+            .attr ("title", "играть альбом");
+
+        play_button[0].setAttribute("onclick", onclick);
+
+        var add_button = $("<div></div>")
+            .addClass("b-albums__add")
+            .addClass("js-add-album")
+            .attr ("title", "добавить в плейлист");
+
+        add_button[0].setAttribute("onclick", onclick);
+    }
+
+    var fade_type_right = $("<div></div>")
+        .addClass("b-albums__fade")
+        .addClass("b-albums__fade_type_right");
+
+    var fade_type_bottom = $("<div></div>")
+        .addClass("b-albums__fade")
+        .addClass("b-albums__fade_type_bottom");
+
+    album_block.addClass("l-half__" + side)
+        .attr("title", title)
+        .append($("<div></div>")
+            .addClass("b-albums")
+            .append(cover_block)
+            .append(fade_type_right)
+            .append(fade_type_bottom)
+            .append(play_button)
+            .append(add_button)
+            .append(
+                $("<div></div>")
+                .addClass("b-albums__text")
+                .append(
+                    $("<div></div>")
+                    .addClass("b-albums__artist")
+                    .text(artist)
+                    .append(
+                        $("<span></span>")
+                        .addClass("b-albums__year")
+                        .html("<br>" + subtitle)
+                    )
+                )
+                .append(
+                    $("<div></div>")
+                    .addClass("b-albums__title")
+                    .append(
+                        $("<a></a>")
+                        .addClass("b-link")
+                        .addClass("b-link_class_albums-title-link")
+                        .attr("href", link)
+                        .text(title)
+                    )
+                )
+            )
+        );
+
+    return album_block;
+}
+
+function albumize() {
+    if($("#js-content").hasClass("albumized")) {
+        stop_trying();
+        return;
+    }
+
+    if(location.hash.match(MY_ALBUMS_URL)) {
+        $("#js-content .b-track, .b-subtitle, .b-album-disc, .b-group-switch, .l-album, .l-mix").hide();
+
+        var artist = $("#js-content .b-title__title").text();
+        var titles = $(".b-subtitle__title a").map(function(i, e) { 
+                return {
+                    "title": $(e),
+                    "subtitle": $(e).parent().next(".b-subtitle__info")
+                };
+        });
+
+        if(titles.length > 0) {
+            stop_trying();
+        }
+
+        var covers = $(".b-album-cover__img").map(function(i, e) { return $(e).attr("src").replace("m150x150", "m75x75"); });
+        var onclicks = $(".b-album-control").map(function(i, e) { return e.getAttribute('onclick'); });
+
+        $("#js-content").append($("<div></div>").addClass("js-albums-list"));
+
+        for(i = 0; i < Math.ceil(titles.length / 2); i++) {
+            $("#js-content .js-albums-list").append(
+                $("<div></div>")
+                .addClass("l-half")
+                .append(
+                    $("<div></div>")
+                    .addClass("l-half__row")
+                    .append(make_album(artist, titles[i*2], covers[i*2], onclicks[i*2], "left"))
+                    .append(
+                        $("<div></div>")
+                        .addClass("l-half__gap")
+                    )
+                    .append(make_album(artist, titles[i*2+1], covers[i*2+1], onclicks[i*2+1], "right"))
+                )
+            );
         }
     }
-    
-    // Call original Songbird.play
-    return this._play(trackdata);
-};
+    else if(location.hash.match(ARTIST_URL)) {
+        stop_trying();
 
- 
-// Repeat button
+        $.each($(".b-arrow-link_type_album a"), function(i, e) {
+            $(e).attr("href", e + "/albums");
+        });
+    }
 
-var repeat_button = $("<div id='repeat_button' />");
+}
 
-repeat_button.click(function() {
-    Mu.Songbird.nextRepeatMode();
-    $(this).removeClass().addClass("repeat_" + ["none", "all", "one"][Mu.Songbird.repeat_mode]);
-});
-
-$(".b-jambox-tools__content").append(repeat_button);
+window.addEventListener("hashchange", try_albumize, false);
